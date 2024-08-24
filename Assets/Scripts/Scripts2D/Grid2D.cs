@@ -23,6 +23,10 @@ public class Grid2D<T> {
         return new RectInt(Vector2Int.zero, Size).Contains(pos + Offset);
     }
 
+    //this seems to be used as a catch-all
+        //if you call Grid2D[int x, int y] 
+            //it will call itself again for you as Grid2D[new Vector2Int(x, y)]
+
     public T this[int x, int y] {
         get {
             return this[new Vector2Int(x, y)];
@@ -32,6 +36,9 @@ public class Grid2D<T> {
         }
     }
 
+    //using this getter/setter calls the GetIndex function which maps 2D coordinates onto a 1D array
+        //you essentially use pos.x as a slider and
+            //(size.x * pos.y) as a multiplier that changes what stack you're sliding on
     public T this[Vector2Int pos] {
         get {
             pos += Offset;

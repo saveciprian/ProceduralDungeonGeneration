@@ -79,6 +79,10 @@ namespace Graphs {
 
         public override int GetHashCode() {
             return U.GetHashCode() ^ V.GetHashCode();
+            // ^ is the bitwise XOR operator
+            // particularily useful here because the order of operations doesn't matter with XOR
+            // apparently XOR is a very common technique to combine two hash codes
+            // I wish I knew what a hash code is
         }
     }
 }

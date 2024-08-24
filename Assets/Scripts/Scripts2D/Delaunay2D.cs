@@ -136,18 +136,24 @@ public class Delaunay2D {
         }
 
         public static bool AlmostEqual(Edge left, Edge right) {
+            //this is the function to check if edges are close to being equal
             return Delaunay2D.AlmostEqual(left.U, right.U) && Delaunay2D.AlmostEqual(left.V, right.V)
-                   || Delaunay2D.AlmostEqual(left.U, right.V) && Delaunay2D.AlmostEqual(left.V, right.U);
+                || Delaunay2D.AlmostEqual(left.U, right.V) && Delaunay2D.AlmostEqual(left.V, right.U);
+            //seems like they call another version of the function that deals with floats instead of edge objects
         }
     }
 
     static bool AlmostEqual(float x, float y) {
+        //so if the difference between the floats is lower than... i guess a percentage of the same two values
+        //then returns true, otherwise false
         return Mathf.Abs(x - y) <= float.Epsilon * Mathf.Abs(x + y) * 2
-               || Mathf.Abs(x - y) < float.MinValue;
+            || Mathf.Abs(x - y) < float.MinValue;
     }
 
     static bool AlmostEqual(Vertex left, Vertex right) {
         return AlmostEqual(left.Position.x, right.Position.x) && AlmostEqual(left.Position.y, right.Position.y);
+        
+        //i think this is the same as the edge one, just calls the function that deals with floats 
     }
 
     public List<Vertex> Vertices { get; private set; }
@@ -160,6 +166,7 @@ public class Delaunay2D {
     }
 
     public static Delaunay2D Triangulate(List<Vertex> vertices) {
+        //i'm guessing it's this object that gets created when running the static function that then gets returned back to the object in Generator2D
         Delaunay2D delaunay = new Delaunay2D();
         delaunay.Vertices = new List<Vertex>(vertices);
         delaunay.Triangulate();
@@ -168,11 +175,13 @@ public class Delaunay2D {
     }
 
     void Triangulate() {
+        //create four variables to hold the smallest rectangle (bounding box) that can hold all vertices
         float minX = Vertices[0].Position.x;
         float minY = Vertices[0].Position.y;
         float maxX = minX;
         float maxY = minY;
-        
+
+        //iterate through all the vertices in order to find all of the values
         foreach (var vertex in Vertices) {
             if (vertex.Position.x < minX) minX = vertex.Position.x;
             if (vertex.Position.x > maxX) maxX = vertex.Position.x;
@@ -180,60 +189,65 @@ public class Delaunay2D {
             if (vertex.Position.y > maxY) maxY = vertex.Position.y;
         }
 
-        float dx = maxX - minX; 
-        float dy = maxY - minY; 
-        float deltaMax = Mathf.Max(dx, dy) * 2; 
+        float dx = maxX - minX; //width of bounding box
+        float dy = maxY - minY; //height of bounding box
+        float deltaMax = Mathf.Max(dx, dy) * 2; //i guess this takes the largest of the width and height and then multiplies it by 2 in order to use it to create a super triangle that encompasses all possible vertices.
+        //i'm sure i'm missing some elementary geometry for this; why is it multiplied with 2?
 
-        Vertex p1 = new Vertex(new Vector2(minX - 1         , minY - 1          )); 
+        Vertex p1 = new Vertex(new Vector2(minX - 1         , minY - 1          )); //first vertex is slightly below and to the left of the bounding box
         Vertex p2 = new Vertex(new Vector2(minX - 1         , maxY + deltaMax   ));
+        //second vert is far above and a bit to the left
         Vertex p3 = new Vertex(new Vector2(maxX + deltaMax  , minY - 1          ));
-        
+        //third vert is far to the right and slightly below the bounding box
+        //so this is a huge right angle triangle that's isosceles
 
-        Triangles.Add(new Triangle(p1, p2, p3)); 
+        Triangles.Add(new Triangle(p1, p2, p3)); //add the initial triangle
 
         foreach (var vertex in Vertices) {
-            List<Edge> polygon = new List<Edge>(); 
+            List<Edge> polygon = new List<Edge>(); //create a list for edges
 
             foreach (var t in Triangles) {
-                if (t.CircumCircleContains(vertex.Position)) {
-                    polygon.Add(new Edge(t.A, t.B)); 
+                if (t.CircumCircleContains(vertex.Position)) { //check to see if the current vertex is inside the circumcircle(the circle that passes through each of the triangle's vertices)
+                    t.IsBad = true; //if so, mark the triangle as bad
+                    polygon.Add(new Edge(t.A, t.B)); //then create all the edges for the triangle?
                     polygon.Add(new Edge(t.B, t.C));
                     polygon.Add(new Edge(t.C, t.A));
                 }
             }
 
-            Triangles.RemoveAll((Triangle t) => t.IsBad);
+            Triangles.RemoveAll((Triangle t) => t.IsBad); //remove all triangles that are bad
 
             for (int i = 0; i < polygon.Count; i++) { 
                 for (int j = i + 1; j < polygon.Count; j++) {
-                    
+                    //on the last iteration of i, doesn't the j exceed the max size of the array?
+                    //maybe i should be polygon.Count - 1 ?
                     if (Edge.AlmostEqual(polygon[i], polygon[j])) { 
                         polygon[i].IsBad = true;
                         polygon[j].IsBad = true;
-                        
+                        //i guess if the edges are very close to eachother just mark them for removal
                     }
                 }
             }
 
-            polygon.RemoveAll((Edge e) => e.IsBad);
+            polygon.RemoveAll((Edge e) => e.IsBad); //remove edges if they're bad
 
             foreach (var edge in polygon) {
                 Triangles.Add(new Triangle(edge.U, edge.V, vertex));
             }
         }
 
-        Triangles.RemoveAll((Triangle t) => t.ContainsVertex(p1.Position) || t.ContainsVertex(p2.Position) || t.ContainsVertex(p3.Position)); 
+        Triangles.RemoveAll((Triangle t) => t.ContainsVertex(p1.Position) || t.ContainsVertex(p2.Position) || t.ContainsVertex(p3.Position)); //remove all triangles that share a vertex with the original supertriangle
 
-        HashSet<Edge> edgeSet = new HashSet<Edge>();
+        HashSet<Edge> edgeSet = new HashSet<Edge>(); //create a hashmap for the edges that we need to keep
 
-        foreach (var t in Triangles) { 
+        foreach (var t in Triangles) { //go again through all the triangles that remained in the end
             var ab = new Edge(t.A, t.B);
             var bc = new Edge(t.B, t.C);
             var ca = new Edge(t.C, t.A);
 
-            if (edgeSet.Add(ab)) { 
-                Edges.Add(ab); 
-                
+            if (edgeSet.Add(ab)) { //if it works to add an edge in this hashmap
+                Edges.Add(ab); //then also add it in the list pertaining to this object...why?
+                //are we using the hashmap just as a shorthand to make sure we're adding unique values to the edge list?
             }
 
             if (edgeSet.Add(bc)) {
