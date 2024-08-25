@@ -26,6 +26,7 @@ public class Generator2D : MonoBehaviour {
 
     [SerializeField] Vector2Int size;
     [SerializeField] int roomCount;
+    [SerializeField] Vector2Int roomMinSize;
     [SerializeField] Vector2Int roomMaxSize;
     [SerializeField] GameObject cubePrefab;
     [SerializeField] Material redMaterial;
@@ -54,7 +55,8 @@ public class Generator2D : MonoBehaviour {
 
     public GameObject pillar;
     public GameObject door;
-    public List<Vector2Int> pillarLocations = new List<Vector2Int>();
+    private List<Vector2Int> pillarLocations = new List<Vector2Int>();
+    public GameObject Player;
     
         
     void Start() {
@@ -75,6 +77,7 @@ public class Generator2D : MonoBehaviour {
         PathfindHallways();
 
         DrawMap();
+        PlacePlayer();
     }
 
     void PlaceRooms() {
@@ -85,8 +88,8 @@ public class Generator2D : MonoBehaviour {
             );
 
             Vector2Int roomSize = new Vector2Int(
-                random.Next(1, roomMaxSize.x + 1),
-                random.Next(1, roomMaxSize.y + 1)
+                random.Next(roomMinSize.x, roomMaxSize.x + 1),
+                random.Next(roomMinSize.y, roomMaxSize.y + 1)
             );
 
 
@@ -312,39 +315,12 @@ public class Generator2D : MonoBehaviour {
                     }
                 }
 
-                #region DeleteThisShit
-                    //// STRAIGHT CORRIDORS ////
-                    // if (Search2D(x, z, straightVertical.Pattern))
-                    //     Instantiate(straightVertical.Prefab, new Vector3(x, 0, z), Quaternion.Euler(straightVertical.Orientation));
-                    // else if (Search2D(x, z, straightHorizontal.Pattern))
-                    //     Instantiate(straightHorizontal.Prefab, new Vector3(x, 0, z), Quaternion.Euler(straightHorizontal.Orientation));
-                    // //// CORNERS ////
-                    // else if (Search2D(x, z, cornerTopLeft.Pattern))
-                    //     Instantiate(cornerTopLeft.Prefab, new Vector3(x, 0, z), Quaternion.Euler(cornerTopLeft.Orientation));
-                    // else if (Search2D(x, z, cornerBottomLeft.Pattern))
-                    //     Instantiate(cornerBottomLeft.Prefab, new Vector3(x, 0, z), Quaternion.Euler(cornerBottomLeft.Orientation));
-                    // else if (Search2D(x, z, cornerTopRight.Pattern))
-                    //     Instantiate(cornerTopRight.Prefab, new Vector3(x, 0, z), Quaternion.Euler(cornerTopRight.Orientation));
-                    // else if (Search2D(x, z, cornerBottomRight.Pattern))
-                    //     Instantiate(cornerBottomRight.Prefab, new Vector3(x, 0, z), Quaternion.Euler(cornerBottomRight.Orientation));
-                    
-                    //// POPULATE ALL MAP AREAS ////
-                    // else
-                #endregion
-
                 if (grid[new Vector2Int(x, z)] == CellType.Room)
                 {
-                    GameObject roomInst = Instantiate(GameObject.CreatePrimitive(PrimitiveType.Sphere), new Vector3(x, 0, z), Quaternion.identity);
-                    roomInst.transform.localScale = new Vector3(0.4f, 0.4f, 0.4f);
+                    // GameObject roomInst = Instantiate(GameObject.CreatePrimitive(PrimitiveType.Sphere), new Vector3(x, 0, z), Quaternion.identity);
+                    // roomInst.transform.localScale = new Vector3(0.4f, 0.4f, 0.4f);
                 }
 
-                // if (grid[new Vector2Int(x, z)] == CellType.Room &&
-                //     (CountSquareNeighbours(x, z) > 1 && CountDiagonalNeighbours(x, z) >= 1 ||
-                //      CountSquareNeighbours(x, z) >= 1 && CountDiagonalNeighbours(x, z) > 1))
-                // {
-                //     Instantiate(floorPiece, new Vector3(x, 0, z), Quaternion.identity);
-                // }
-                
                 if (grid[new Vector2Int(x, z)] == CellType.Room)
                 {
                     Instantiate(floorPiece, new Vector3(x, 0, z), Quaternion.identity);
@@ -520,11 +496,7 @@ public class Generator2D : MonoBehaviour {
         left = false;
 
         if (x <= 0 || x >= size.x - 1 || z <= 0 || z >= size.y - 1) return;
-        // if(map[x, z + 1] == 0 && map[x-1, z+1] == 1 && map[x+1, z+1] == 1) top = true;
-        // if(map[x, z - 1] == 0 && map[x-1, z-1] == 1 && map[x+1, z-1] == 1) bottom = true;
-        // if(map[x + 1, z] == 0 && map[x+1, z+1] == 1 && map[x+1, z-1] == 1) right = true;
-        // if(map[x - 1, z] == 0 && map[x-1, z+1] == 1 && map[x-1, z-1] == 1) left = true;
-        
+
         if(grid[ new Vector2Int(x, z + 1)] != CellType.Room && grid[ new Vector2Int(x, z + 1) ] == CellType.Hallway) top = true;
         if(grid[ new Vector2Int(x, z - 1)] != CellType.Room && grid[ new Vector2Int(x, z - 1) ] == CellType.Hallway) bottom = true;
         if(grid[ new Vector2Int(x - 1, z)] != CellType.Room && grid[ new Vector2Int(x - 1, z) ] == CellType.Hallway) left = true;
@@ -601,5 +573,22 @@ public class Generator2D : MonoBehaviour {
             }
         }
         return (count == 9);
+    }
+
+    void PlacePlayer()
+    {
+        for (int z = 0; z < size.y; z++)
+        {
+            for (int x = 0; x < size.x; x++)
+            {
+                if (grid[new Vector2Int(x, z)] == CellType.Room)
+                {
+                    Player.transform.position = new Vector3(x, 0, z);
+                    return;
+
+                }
+            }
+        }
+
     }
 }
